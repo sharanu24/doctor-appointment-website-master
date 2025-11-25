@@ -1,0 +1,12 @@
+node_modules
+.env
+.env.local
+dist
+build
+.DS_Store
+npm-debug.log
+yarn-error.log
+/.vscode/
+/.idea/
+Dockerfile
+docker-compose.override.yml

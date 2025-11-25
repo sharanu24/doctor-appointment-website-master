@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: unless-stopped
+    # load environment variables from backend/.env so MONGODB_URI, JWT_SECRET, ADMIN_* etc are available
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=4000
+    expose:
+      - "4000"
+    networks:
+      - app-network
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "80"
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/letsencrypt/live:ro
+      - ./nginx/html:/var/www/certbot
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    # In local dev the certbot image's entrypoint is the certbot binary. To keep the
+    # container running for dev purposes provide an entrypoint shell command instead
+    # of trying to pass arguments to the certbot binary which causes 'unrecognized arguments'.
+    entrypoint: ["sh", "-c", "sleep infinity"]
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/html:/var/www/certbot
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
